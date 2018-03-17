@@ -8,7 +8,6 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.stereotype.Service;
 
 import java.util.List;
-import java.util.Optional;
 import java.util.stream.Collectors;
 
 @Slf4j
@@ -33,11 +32,50 @@ public class CustomerServiceImpl implements CustomerService {
 
     @Override
     public CustomerDTO getCustomerById(long id) {
-        Optional<Customer> customerOptional =  customerRepository.findById(id);
-        if (!customerOptional.isPresent()) {
-            log.error("Cannot find customer with id: " + id);
-            throw new RuntimeException("Cannot find customer with id: " + id);
+        return customerRepository.findById(id)
+                .map(customerMapper::customerToCustomerDTO)
+                .orElseThrow(ResourceNotFoundException::new);
+    }
+
+    @Override
+    public CustomerDTO createNewCustomer(CustomerDTO customerDTO) {
+        Customer customer = customerMapper.customerDtoToCustomer(customerDTO);
+        return saveCustomerByDTO(customer);
+    }
+
+    @Override
+    public CustomerDTO updateCustomer(Long id, CustomerDTO customerDTO) {
+        Customer customer = customerMapper.customerDtoToCustomer(customerDTO);
+        customer.setId(id);
+        return saveCustomerByDTO(customer);
+    }
+
+    @Override
+    public CustomerDTO patchCustomer(Long id, CustomerDTO customerDTO) {
+        return customerRepository.findById(id).map(customer -> {
+
+            if (customerDTO.getFirstName() != null) {
+                customer.setFirstName(customerDTO.getFirstName());
+            }
+            if (customerDTO.getLastName() != null) {
+                customer.setLastName(customerDTO.getLastName());
+            }
+
+            return customerMapper.customerToCustomerDTO(customerRepository.save(customer));
+        }).orElseThrow(ResourceNotFoundException::new);
+    }
+
+    @Override
+    public void deleteCustomerById(Long id) {
+        try {
+            customerRepository.deleteById(id);
+        } catch (Exception e) {
+            throw new ResourceNotFoundException(e);
         }
-        return customerMapper.customerToCustomerDTO(customerOptional.get());
+    }
+
+    private CustomerDTO saveCustomerByDTO(Customer customer) {
+        Customer savedCustomer = customerRepository.save(customer);
+        return customerMapper.customerToCustomerDTO(savedCustomer);
     }
 }

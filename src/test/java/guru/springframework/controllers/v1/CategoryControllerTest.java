@@ -1,7 +1,9 @@
 package guru.springframework.controllers.v1;
 
 import guru.springframework.api.v1.model.CategoryDTO;
+import guru.springframework.controllers.RestResponseEntityExceptionHandler;
 import guru.springframework.services.CategoryService;
+import guru.springframework.services.ResourceNotFoundException;
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.InjectMocks;
@@ -16,6 +18,7 @@ import java.util.List;
 
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.hasSize;
+import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.when;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -34,7 +37,9 @@ public class CategoryControllerTest {
     public void setUp() throws Exception {
         MockitoAnnotations.initMocks(this);
 
-        mockMvc = MockMvcBuilders.standaloneSetup(controller).build();
+        mockMvc = MockMvcBuilders.standaloneSetup(controller)
+                .setControllerAdvice(new RestResponseEntityExceptionHandler())
+                .build();
     }
 
     @Test
@@ -53,7 +58,7 @@ public class CategoryControllerTest {
         when(categoryService.getAllCategories()).thenReturn(categoryDTOList);
 
         // when
-        mockMvc.perform(get("/api/v1/categories/")
+        mockMvc.perform(get(CategoryController.BASE_URL)
                 .contentType(MediaType.APPLICATION_JSON))
                 // then
                 .andExpect(status().isOk())
@@ -70,10 +75,22 @@ public class CategoryControllerTest {
         when(categoryService.getCategoryByName(NAME)).thenReturn(categoryDTO);
 
         // when
-        mockMvc.perform(get("/api/v1/categories/Jim")
+        mockMvc.perform(get(CategoryController.BASE_URL + "Jim")
                 .contentType(MediaType.APPLICATION_JSON))
                 // then
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.name", equalTo(NAME)));
+    }
+
+    @Test
+    public void shouldReturnNotFoundIfNameNotExist() throws Exception {
+        // given
+        when(categoryService.getCategoryByName(anyString())).thenThrow(ResourceNotFoundException.class);
+
+        // when
+        mockMvc.perform(get(CategoryController.BASE_URL + "foo")
+                .contentType(MediaType.APPLICATION_JSON))
+                // then
+                .andExpect(status().isNotFound());
     }
 }

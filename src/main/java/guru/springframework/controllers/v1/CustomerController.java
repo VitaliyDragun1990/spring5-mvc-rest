@@ -6,16 +6,15 @@ import guru.springframework.services.CustomerService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
-import org.springframework.stereotype.Controller;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.*;
+import org.springframework.web.method.annotation.MethodArgumentTypeMismatchException;
 
 @Slf4j
-@Controller
-@RequestMapping("/api/v1/customers/")
+@RestController
+@RequestMapping(CustomerController.BASE_URL)
 public class CustomerController {
 
+    public static final String BASE_URL = "/api/v1/customers/";
     private CustomerService customerService;
 
     public CustomerController(CustomerService customerService) {
@@ -23,14 +22,39 @@ public class CustomerController {
     }
 
     @GetMapping
-    public ResponseEntity<CustomerListDTO> getAllCustomers() {
-
-        return new ResponseEntity<>(new CustomerListDTO(customerService.getAllCustomers()), HttpStatus.OK);
+    @ResponseStatus(HttpStatus.OK)
+    public CustomerListDTO getAllCustomers() {
+        return new CustomerListDTO(customerService.getAllCustomers());
     }
 
     @GetMapping("{id}")
-    public ResponseEntity<CustomerDTO> getCustomerById(@PathVariable("id") String id) {
-        long customerId = Long.valueOf(id);
-        return new ResponseEntity<>(customerService.getCustomerById(customerId), HttpStatus.OK);
+    @ResponseStatus(HttpStatus.OK)
+    public CustomerDTO getCustomerById(@PathVariable("id") Long id) {
+        return customerService.getCustomerById(id);
+
+    }
+
+    @PostMapping
+    @ResponseStatus(HttpStatus.CREATED)
+    public CustomerDTO createNewCustomer(@RequestBody CustomerDTO customerDTO) {
+        return customerService.createNewCustomer(customerDTO);
+    }
+
+    @PutMapping("{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public CustomerDTO updateCustomer(@RequestBody CustomerDTO customerDTO, @PathVariable("id") Long id) {
+        return customerService.updateCustomer(id, customerDTO);
+    }
+
+    @PatchMapping("{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public CustomerDTO patchCustomer(@RequestBody CustomerDTO customerDTO, @PathVariable("id") Long id) {
+        return customerService.patchCustomer(id, customerDTO);
+    }
+
+    @DeleteMapping("{id}")
+    @ResponseStatus(HttpStatus.OK)
+    public void deleteCustomer(@PathVariable("id") Long id) {
+        customerService.deleteCustomerById(id);
     }
 }
